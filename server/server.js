@@ -21,39 +21,42 @@ const app = express();
 // 1. Connect to DB
 connectDB();
 
-
+// 2. Stripe Webhook handling (raw body)
 app.use((req, res, next) => {
   if (req.originalUrl === "/api/payments/webhook") {
-    // Skip express.json() for Stripe webhook
-    return next();
+    return next(); // skip express.json()
   }
-  return express.json()(req, res, next);
+  express.json()(req, res, next);
 });
 
-// 3. Other global middlewares
+// 3. Global Middlewares
 app.use(cookieParser());
 app.use(morgan("dev"));
 
-// 4. CORS
+/* -------------------------------------------------
+   4. CORS FIX FOR VERCEL + LOCALHOST + POSTMAN
+--------------------------------------------------- */
+
 const allowedOrigins = [
   "http://localhost:5173",
   "http://127.0.0.1:5173",
+  "https://e-commerce-six-lime-76.vercel.app", // YOUR VERCEL URL (IMPORTANT)
 ];
 
+// Add CLIENT_URL from environment (Render)
 if (process.env.CLIENT_URL) {
   allowedOrigins.push(process.env.CLIENT_URL);
 }
 
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow non-browser tools like Postman (no Origin header)
     if (!origin) return callback(null, true);
 
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
 
-    console.log("❌ Blocked by CORS:", origin);
+    console.log("❌ CORS BLOCKED:", origin);
     return callback(new Error("Not allowed by CORS"), false);
   },
   credentials: true,
@@ -61,23 +64,23 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-/**
- * 5. API Routes
- */
+/* -------------------------------------------------
+   5. API ROUTES
+--------------------------------------------------- */
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/reviews", reviewRoutes);
-app.use("/api/payments", paymentRoutes); // includes /create-payment-intent and /webhook
+app.use("/api/payments", paymentRoutes);
 
 // 6. Health Check
 app.get("/", (req, res) => {
   res.send("E-commerce API is running...");
 });
 
-// 7. Error handlers
+// 7. Error Middlewares
 app.use(notFound);
 app.use(errorHandler);
 
