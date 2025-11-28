@@ -1,0 +1,29 @@
+[
+  {
+    "name": "Apple iPhone 15",
+    "brand": "Apple",
+    "category": "Smartphones",
+    "description": "Latest in iPhone line with A16 Bionic and great camera.",
+    "price": 79999,
+    "image": "https://images.unsplash.com/photo-...iphone",
+    "countInStock": 12
+  },
+  {
+    "name": "Samsung Galaxy S24",
+    "brand": "Samsung",
+    "category": "Smartphones",
+    "description": "Flagship from Samsung.",
+    "price": 72999,
+    "image": "https://images.unsplash.com/photo-...samsung",
+    "countInStock": 15
+  },
+  {
+    "name": "Sony WH-1000XM5 Headphones",
+    "brand": "Sony",
+    "category": "Headphones",
+    "description": "Industry-leading noise cancelling.",
+    "price": 24999,
+    "image": "https://images.unsplash.com/photo-...headphones",
+    "countInStock": 20
+  }
+]
