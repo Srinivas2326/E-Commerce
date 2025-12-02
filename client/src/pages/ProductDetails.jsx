@@ -43,6 +43,12 @@ const ProductDetails = () => {
 
   const inStock = (product.countInStock ?? 0) > 0;
 
+  // same idea: category may be string or object
+  const categoryName =
+    typeof product.category === "string"
+      ? product.category
+      : product.category?.name;
+
   return (
     <div className="container page" style={{ paddingTop: 12 }}>
       <div className="card" style={{ padding: "1rem" }}>
@@ -73,25 +79,63 @@ const ProductDetails = () => {
               {product.name}
             </h1>
 
-            <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 8 }}>
-              {product.brand && <span className="product-brand">{product.brand}</span>}
-              {product.category && (
-                <span className="product-category-pill">{product.category}</span>
+            <div
+              style={{
+                display: "flex",
+                gap: 12,
+                alignItems: "center",
+                marginBottom: 8,
+              }}
+            >
+              {product.brand && (
+                <span className="product-brand">{product.brand}</span>
+              )}
+              {categoryName && (
+                <span className="product-category-pill">
+                  {categoryName}
+                </span>
               )}
             </div>
 
-            <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 8 }}>
-              <div className="product-price" style={{ fontSize: "1.4rem", fontWeight: 700 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "baseline",
+                gap: 12,
+                marginBottom: 8,
+              }}
+            >
+              <div
+                className="product-price"
+                style={{ fontSize: "1.4rem", fontWeight: 700 }}
+              >
                 ₹{product.price}
               </div>
-              <div className="text-muted">({inStock ? `${product.countInStock} in stock` : "Out of stock"})</div>
+              <div className="text-muted">
+                {inStock
+                  ? `(${product.countInStock} in stock)`
+                  : "Out of stock"}
+              </div>
             </div>
 
-            <p style={{ marginTop: 8, marginBottom: 12, color: "var(--text-soft)" }}>
+            <p
+              style={{
+                marginTop: 8,
+                marginBottom: 12,
+                color: "var(--text-soft)",
+              }}
+            >
               {product.description}
             </p>
 
-            <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 8 }}>
+            <div
+              style={{
+                display: "flex",
+                gap: 12,
+                alignItems: "center",
+                marginTop: 8,
+              }}
+            >
               <button
                 onClick={() => addToCart(product)}
                 disabled={!inStock}
@@ -103,11 +147,10 @@ const ProductDetails = () => {
                 {inStock ? "Add to cart" : "Out of stock"}
               </button>
 
-              {/* optional secondary action (e.g., go to cart) */}
               <button
                 className="btn btn-outline"
                 onClick={() => {
-                  // optional: navigate to cart if you'd like
+                  // optional: navigate to cart later if you want
                   // navigate("/cart");
                 }}
                 style={{ padding: "0.55rem 0.95rem" }}

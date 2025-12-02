@@ -17,6 +17,16 @@ const emptyForm = {
   description: "",
 };
 
+// Helper: turn category (string or object) into a nice string
+const getCategoryLabel = (category) => {
+  if (!category) return "";
+  if (typeof category === "string" || typeof category === "number") {
+    return category;
+  }
+  // when it is an object: { id, name, slug }
+  return category.name || category.slug || category.id || "";
+};
+
 const AdminProducts = () => {
   const { user } = useAuthContext();
   const [products, setProducts] = useState([]);
@@ -46,13 +56,14 @@ const AdminProducts = () => {
   const startEdit = (product) => {
     setEditingId(product._id);
     setForm({
-      name: product.name,
-      price: product.price,
-      image: product.image,
-      brand: product.brand,
-      category: product.category,
-      countInStock: product.countInStock,
-      description: product.description,
+      name: product.name || "",
+      price: product.price || "",
+      image: product.image || "",
+      brand: product.brand || "",
+      // store a string in the input, even if product.category is an object
+      category: getCategoryLabel(product.category),
+      countInStock: product.countInStock || "",
+      description: product.description || "",
     });
   };
 
@@ -75,7 +86,7 @@ const AdminProducts = () => {
       setEditingId(null);
       await loadProducts();
     } catch (err) {
-      setError(err.response?.data?.message || "Save failed");
+      setError(err?.response?.data?.message || "Save failed");
     } finally {
       setSaving(false);
     }
@@ -102,7 +113,10 @@ const AdminProducts = () => {
       {error && <p style={{ color: "tomato" }}>{error}</p>}
 
       {/* FORM */}
-      <form onSubmit={handleSubmit} style={{ marginTop: "1rem", maxWidth: "500px" }}>
+      <form
+        onSubmit={handleSubmit}
+        style={{ marginTop: "1rem", maxWidth: "500px" }}
+      >
         <h3>{editingId ? "✏ Edit Product" : "➕ Add New Product"}</h3>
 
         {Object.keys(emptyForm).map((key) => (
@@ -113,7 +127,11 @@ const AdminProducts = () => {
             value={form[key]}
             onChange={handleChange}
             required
-            style={{ display: "block", margin: "0.5rem 0", padding: "0.5rem" }}
+            style={{
+              display: "block",
+              margin: "0.5rem 0",
+              padding: "0.5rem",
+            }}
           />
         ))}
 
@@ -122,7 +140,11 @@ const AdminProducts = () => {
           disabled={saving}
           style={{ padding: "0.5rem 1rem", cursor: "pointer" }}
         >
-          {saving ? "Saving..." : editingId ? "Update Product" : "Add Product"}
+          {saving
+            ? "Saving..."
+            : editingId
+            ? "Update Product"
+            : "Add Product"}
         </button>
 
         {editingId && (
@@ -146,7 +168,11 @@ const AdminProducts = () => {
         {loading ? (
           <p>Loading...</p>
         ) : (
-          <table border="1" cellPadding="8" style={{ width: "100%", marginTop: "1rem" }}>
+          <table
+            border="1"
+            cellPadding="8"
+            style={{ width: "100%", marginTop: "1rem" }}
+          >
             <thead>
               <tr>
                 <th>Name</th>
@@ -165,13 +191,21 @@ const AdminProducts = () => {
                   <td>{p.brand}</td>
                   <td>₹{p.price}</td>
                   <td>{p.countInStock}</td>
-                  <td>{p.category}</td>
+                  {/* ✅ FIXED: show a string, not the raw object */}
+                  <td>{getCategoryLabel(p.category)}</td>
                   <td>
-                    <img src={p.image} alt={p.name} width="60" />
+                    <img
+                      src={p.image || "https://via.placeholder.com/80"}
+                      alt={p.name}
+                      width="60"
+                    />
                   </td>
                   <td>
                     <button onClick={() => startEdit(p)}>Edit</button>
-                    <button onClick={() => handleDelete(p._id)} style={{ marginLeft: "0.5rem" }}>
+                    <button
+                      onClick={() => handleDelete(p._id)}
+                      style={{ marginLeft: "0.5rem" }}
+                    >
                       Delete
                     </button>
                   </td>

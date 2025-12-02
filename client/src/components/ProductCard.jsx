@@ -13,6 +13,12 @@ const ProductCard = ({ product }) => {
 
   const inWishlist = isInWishlist(product._id);
 
+  // category can be a string ("Electronics") or an object ({ id, name, slug })
+  const categoryName =
+    typeof product.category === "string"
+      ? product.category
+      : product.category?.name;
+
   return (
     <div
       style={{
@@ -49,7 +55,8 @@ const ProductCard = ({ product }) => {
           {product.name}
         </Link>
         <p style={{ fontSize: "0.9rem", opacity: 0.8 }}>
-          {product.brand} · {product.category}
+          {product.brand}
+          {categoryName && <> · {categoryName}</>}
         </p>
       </div>
 
