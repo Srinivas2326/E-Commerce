@@ -4,7 +4,7 @@ const API = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
 });
 
-// Attach token from localStorage (if present) to every request
+// Attach token automatically to requests
 API.interceptors.request.use((config) => {
   const stored = localStorage.getItem("ecom-user");
   const user = stored ? JSON.parse(stored) : null;
@@ -19,12 +19,18 @@ API.interceptors.request.use((config) => {
 /**
  * PRODUCTS
  */
-
-// Optionally pass params, e.g. { category: categoryId }
 export const fetchProducts = (params = {}) =>
   API.get("/products", { params });
 
 export const fetchProduct = (id) => API.get(`/products/${id}`);
+
+// ⭐ Add Review to Product
+export const addProductReview = (id, reviewData) =>
+  API.post(`/products/${id}/reviews`, reviewData, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
 
 // Admin product management
 export const createProduct = (data) => API.post("/products", data);

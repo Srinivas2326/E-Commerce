@@ -1,8 +1,8 @@
 const Product = require("../models/product.model");
-const { mapCategories } = require("../data/products"); // <-- updated import
+const { mapCategories } = require("../data/products");
 
-// @desc    Get all products (optionally filter by category / search)
-// @route   GET /api/products?category=<categoryId>&search=<text>
+// @desc    Get all products
+// @route   GET /api/products
 // @access  Public
 exports.getProducts = async (req, res) => {
   try {
@@ -10,15 +10,8 @@ exports.getProducts = async (req, res) => {
 
     const filter = {};
 
-    // Filter by category id
-    if (category) {
-      filter.category = category;
-    }
-
-    // Optional: search by name (case-insensitive)
-    if (search) {
-      filter.name = { $regex: search, $options: "i" };
-    }
+    if (category) filter.category = category;
+    if (search) filter.name = { $regex: search, $options: "i" };
 
     const products = await Product.find(filter)
       .populate("category", "name slug")
@@ -99,18 +92,55 @@ exports.deleteProduct = async (req, res) => {
   }
 };
 
-// @desc    Seed sample products (dev only)
+// @desc    Create product review
+// @route   POST /api/products/:id/reviews
+// @access  Private
+exports.createReview = async (req, res) => {
+  try {
+    const { rating, comment } = req.body;
+
+    const product = await Product.findById(req.params.id);
+
+    if (!product)
+      return res.status(404).json({ message: "Product not found" });
+
+    const alreadyReviewed = product.reviews.find(
+      (r) => r.user.toString() === req.user._id.toString()
+    );
+
+    if (alreadyReviewed)
+      return res.status(400).json({ message: "Product already reviewed" });
+
+    const review = {
+      user: req.user._id,
+      name: req.user.name,
+      rating: Number(rating),
+      comment,
+    };
+
+    product.reviews.push(review);
+    product.numReviews = product.reviews.length;
+    product.rating =
+      product.reviews.reduce((acc, r) => acc + r.rating, 0) /
+      product.reviews.length;
+
+    await product.save();
+
+    res.status(201).json({ message: "Review added successfully" });
+  } catch (error) {
+    console.error("Create review error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Seed products
 // @route   GET /api/products/seed
-// @access  Public (you can change to Admin later)
+// @access  Public (dev only)
 exports.seedProducts = async (req, res) => {
   try {
-    // Clear existing products
     await Product.deleteMany({});
 
-    // Use helper to map category names -> Category ObjectIds
     const productsData = await mapCategories();
-
-    // Insert sample products
     const createdProducts = await Product.insertMany(productsData);
 
     return res.status(201).json({
@@ -119,8 +149,6 @@ exports.seedProducts = async (req, res) => {
     });
   } catch (error) {
     console.error("Seed products error:", error);
-    return res
-      .status(500)
-      .json({ message: error.message || "Failed to seed products" });
+    return res.status(500).json({ message: error.message });
   }
 };

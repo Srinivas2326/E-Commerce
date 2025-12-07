@@ -1,6 +1,20 @@
 // server/src/models/product.model.js
 const mongoose = require("mongoose");
 
+const reviewSchema = new mongoose.Schema(
+  {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    name: { type: String, required: true },
+    rating: { type: Number, required: true },
+    comment: { type: String },
+  },
+  { timestamps: true }
+);
+
 const productSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
@@ -8,7 +22,6 @@ const productSchema = new mongoose.Schema(
     price: { type: Number, required: true },
     description: { type: String },
 
-    // 👇 IMPORTANT: link to Category
     category: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Category",
@@ -16,7 +29,11 @@ const productSchema = new mongoose.Schema(
     },
 
     countInStock: { type: Number, default: 0 },
-    // ...any other fields you already have
+
+    // ⭐ NEW FIELDS
+    reviews: [reviewSchema],
+    rating: { type: Number, default: 0 },
+    numReviews: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

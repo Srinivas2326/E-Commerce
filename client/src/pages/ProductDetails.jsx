@@ -43,7 +43,6 @@ const ProductDetails = () => {
 
   const inStock = (product.countInStock ?? 0) > 0;
 
-  // same idea: category may be string or object
   const categoryName =
     typeof product.category === "string"
       ? product.category
@@ -118,6 +117,14 @@ const ProductDetails = () => {
               </div>
             </div>
 
+            {/* ⭐ Rating display - FIXED */}
+            <div style={{ marginBottom: 8 }}>
+              <strong>{Number(product.rating || 0).toFixed(1)}</strong> ⭐
+              <span style={{ marginLeft: 6 }}>
+                ({product.numReviews || 0} Reviews)
+              </span>
+            </div>
+
             <p
               style={{
                 marginTop: 8,
@@ -149,10 +156,6 @@ const ProductDetails = () => {
 
               <button
                 className="btn btn-outline"
-                onClick={() => {
-                  // optional: navigate to cart later if you want
-                  // navigate("/cart");
-                }}
                 style={{ padding: "0.55rem 0.95rem" }}
               >
                 Buy now
