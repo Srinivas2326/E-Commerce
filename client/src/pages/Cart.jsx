@@ -123,7 +123,7 @@ const Cart = () => {
                 marginTop: "0.75rem",
                 padding: "0.5rem 1.5rem",
                 borderRadius: "6px",
-                border: "none",
+                border: "2px solid",
                 cursor: "pointer",
                 background: "var(--primary-color)",
                 color: "#fff",
