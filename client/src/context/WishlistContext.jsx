@@ -5,15 +5,15 @@ import {
   addToWishlist as apiAdd,
   removeFromWishlist as apiRemove,
 } from "../services/api";
+import { toast } from "react-toastify";
 
 const WishlistContext = createContext(null);
 
 export const WishlistProvider = ({ children }) => {
-  const { user, isAuthenticated } = useAuthContext();
-  const [items, setItems] = useState([]); // array of Product objects
+  const { isAuthenticated } = useAuthContext();
+  const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Load wishlist when user logs in / changes
   useEffect(() => {
     if (!isAuthenticated) {
       setItems([]);
@@ -25,57 +25,42 @@ export const WishlistProvider = ({ children }) => {
         setLoading(true);
         const { data } = await fetchWishlist();
         setItems(data);
-      } catch {
-        // ignore for now
-      } finally {
+      } catch {}
+      finally {
         setLoading(false);
       }
     };
 
     load();
-  }, [isAuthenticated, user?._id]);
+  }, [isAuthenticated]);
 
-  const isInWishlist = (productId) =>
-    items.some((p) => p._id === productId);
+  const isInWishlist = (id) => items.some((p) => p._id === id);
 
-  const add = async (product) => {
+  const toggleWishlist = async (product) => {
+    if (!isAuthenticated) {
+      toast.info("Login to add to wishlist ✨");
+      return;
+    }
+
     try {
-      const { data } = await apiAdd(product._id);
-      setItems(data);
+      if (isInWishlist(product._id)) {
+        const { data } = await apiRemove(product._id);
+        setItems(data);
+        toast.warn("Removed from wishlist 💔");
+      } else {
+        const { data } = await apiAdd(product._id);
+        setItems(data);
+        toast.success("Added to wishlist ❤️");
+      }
     } catch {
-      alert("Failed to add to wishlist");
+      toast.error("Something went wrong");
     }
-  };
-
-  const remove = async (productId) => {
-    try {
-      const { data } = await apiRemove(productId);
-      setItems(data);
-    } catch {
-      alert("Failed to remove from wishlist");
-    }
-  };
-
-  const toggle = async (product) => {
-    if (!product?._id) return;
-    if (isInWishlist(product._id)) {
-      await remove(product._id);
-    } else {
-      await add(product);
-    }
-  };
-
-  const value = {
-    items,
-    loading,
-    isInWishlist,
-    addToWishlist: add,
-    removeFromWishlist: remove,
-    toggleWishlist: toggle,
   };
 
   return (
-    <WishlistContext.Provider value={value}>
+    <WishlistContext.Provider
+      value={{ items, loading, isInWishlist, toggleWishlist }}
+    >
       {children}
     </WishlistContext.Provider>
   );
