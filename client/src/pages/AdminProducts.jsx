@@ -1,178 +1,173 @@
-import React, { useEffect, useState } from "react";
-import {
-  fetchProducts,
-  createProduct,
-  updateProduct,
-  deleteProduct,
-} from "../services/api";
-import { useAuthContext } from "../context/AuthContext";
+  import React, { useEffect, useState } from "react";
+  import {
+    fetchProducts,
+    createProduct,
+    updateProduct,
+    deleteProduct,
+    fetchCategories,
+  } from "../services/api";
+  import { useAuthContext } from "../context/AuthContext";
 
-const emptyForm = {
-  name: "",
-  price: "",
-  image: "",
-  brand: "",
-  category: "",
-  countInStock: "",
-  description: "",
-};
-
-// Helper: turn category (string or object) into a nice string
-const getCategoryLabel = (category) => {
-  if (!category) return "";
-  if (typeof category === "string" || typeof category === "number") {
-    return category;
-  }
-  // when it is an object: { id, name, slug }
-  return category.name || category.slug || category.id || "";
-};
-
-const AdminProducts = () => {
-  const { user } = useAuthContext();
-  const [products, setProducts] = useState([]);
-  const [form, setForm] = useState(emptyForm);
-  const [editingId, setEditingId] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-
-  const loadProducts = async () => {
-    try {
-      setLoading(true);
-      const { data } = await fetchProducts();
-      setProducts(data);
-    } catch {
-      setError("Failed to load products");
-    } finally {
-      setLoading(false);
-    }
+  const emptyForm = {
+    name: "",
+    price: "",
+    image: "",
+    brand: "",
+    category: "",
+    countInStock: "",
+    description: "",
   };
 
-  useEffect(() => {
-    loadProducts();
-  }, []);
-
-  // Prefill form when editing
-  const startEdit = (product) => {
-    setEditingId(product._id);
-    setForm({
-      name: product.name || "",
-      price: product.price || "",
-      image: product.image || "",
-      brand: product.brand || "",
-      // store a string in the input, even if product.category is an object
-      category: getCategoryLabel(product.category),
-      countInStock: product.countInStock || "",
-      description: product.description || "",
-    });
+  const getCategoryLabel = (category) => {
+    if (!category) return "";
+    if (typeof category === "string") return category;
+    return category.name || "";
   };
 
-  const handleChange = (e) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  };
+  const AdminProducts = () => {
+    const { user } = useAuthContext();
+    const [products, setProducts] = useState([]);
+    const [categories, setCategories] = useState([]);
+    const [form, setForm] = useState(emptyForm);
+    const [editingId, setEditingId] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState("");
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    setError("");
-
-    try {
-      if (editingId) {
-        await updateProduct(editingId, form);
-      } else {
-        await createProduct(form);
+    const loadProducts = async () => {
+      try {
+        setLoading(true);
+        const { data } = await fetchProducts();
+        setProducts(data);
+      } catch {
+        setError("Failed to load products");
+      } finally {
+        setLoading(false);
       }
-      setForm(emptyForm);
-      setEditingId(null);
-      await loadProducts();
-    } catch (err) {
-      setError(err?.response?.data?.message || "Save failed");
-    } finally {
-      setSaving(false);
+    };
+
+    const loadCategories = async () => {
+      try {
+        const { data } = await fetchCategories();
+        setCategories(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error("Failed to load categories", err);
+      }
+    };
+
+    useEffect(() => {
+      loadProducts();
+      loadCategories();
+    }, []);
+
+    const startEdit = (product) => {
+      setEditingId(product._id);
+      setForm({
+        name: product.name,
+        price: product.price,
+        image: product.image,
+        brand: product.brand,
+        category: product.category?._id || "", // ensure ID is stored
+        countInStock: product.countInStock,
+        description: product.description,
+      });
+    };
+
+    const handleChange = (e) => {
+      setForm({ ...form, [e.target.name]: e.target.value });
+    };
+
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      setSaving(true);
+      setError("");
+
+      try {
+        const payload = { ...form };
+
+        if (editingId) {
+          await updateProduct(editingId, payload);
+        } else {
+          await createProduct(payload);
+        }
+
+        setForm(emptyForm);
+        setEditingId(null);
+        await loadProducts();
+      } catch (err) {
+        setError(err?.response?.data?.message || "Save failed");
+      } finally {
+        setSaving(false);
+      }
+    };
+
+    const handleDelete = async (id) => {
+      if (!window.confirm("Delete this product?")) return;
+      try {
+        await deleteProduct(id);
+        await loadProducts();
+      } catch {
+        alert("Failed to delete product");
+      }
+    };
+
+    if (!user?.isAdmin) {
+      return <h2 style={{ padding: "1rem" }}>❌ Admin access only</h2>;
     }
-  };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Delete this product?")) return;
-    try {
-      await deleteProduct(id);
-      await loadProducts();
-    } catch {
-      alert("Failed to delete product");
-    }
-  };
+    return (
+      <div style={{ padding: "1.5rem" }}>
+        <h1>Admin — Manage Products</h1>
 
-  if (!user?.isAdmin) {
-    return <h2 style={{ padding: "1rem" }}>❌ Admin access only</h2>;
-  }
+        {error && <p style={{ color: "tomato" }}>{error}</p>}
 
-  return (
-    <div style={{ padding: "1rem" }}>
-      <h1>Admin — Manage Products</h1>
-
-      {error && <p style={{ color: "tomato" }}>{error}</p>}
-
-      {/* FORM */}
-      <form
-        onSubmit={handleSubmit}
-        style={{ marginTop: "1rem", maxWidth: "500px" }}
-      >
-        <h3>{editingId ? "✏ Edit Product" : "➕ Add New Product"}</h3>
-
-        {Object.keys(emptyForm).map((key) => (
-          <input
-            key={key}
-            name={key}
-            placeholder={key}
-            value={form[key]}
-            onChange={handleChange}
-            required
-            style={{
-              display: "block",
-              margin: "0.5rem 0",
-              padding: "0.5rem",
-            }}
-          />
-        ))}
-
-        <button
-          type="submit"
-          disabled={saving}
-          style={{ padding: "0.5rem 1rem", cursor: "pointer" }}
+        <form
+          onSubmit={handleSubmit}
+          style={{ marginTop: "1rem", maxWidth: "500px", display: "flex", flexDirection: "column", gap: "0.8rem" }}
         >
-          {saving
-            ? "Saving..."
-            : editingId
-            ? "Update Product"
-            : "Add Product"}
-        </button>
+          <h3>{editingId ? "✏ Edit Product" : "➕ Add New Product"}</h3>
 
-        {editingId && (
-          <button
-            type="button"
-            onClick={() => {
-              setEditingId(null);
-              setForm(emptyForm);
-            }}
-            style={{ marginLeft: "1rem" }}
-          >
-            Cancel
+          <input name="name" placeholder="Product Name" value={form.name} onChange={handleChange} required />
+          <input type="number" name="price" placeholder="Price" value={form.price} onChange={handleChange} required />
+          <input name="image" placeholder="Image URL" value={form.image} onChange={handleChange} required />
+          <input name="brand" placeholder="Brand" value={form.brand} onChange={handleChange} required />
+
+          {/* Category Dropdown Fixed */}
+          <select name="category" value={form.category} onChange={handleChange} required>
+            <option value="">Select Category</option>
+            {categories.map((c) => (
+              <option key={c._id} value={c._id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+
+          <input type="number" name="countInStock" placeholder="Stock Quantity" value={form.countInStock} onChange={handleChange} required />
+
+          <textarea name="description" placeholder="Description" value={form.description} onChange={handleChange} />
+
+          <button className="btn btn-primary" disabled={saving}>
+            {saving ? "Saving..." : editingId ? "Update Product" : "Add Product"}
           </button>
-        )}
-      </form>
 
-      {/* PRODUCT TABLE */}
-      <div style={{ marginTop: "2rem" }}>
-        <h2>Product List</h2>
+          {editingId && (
+            <button className="btn btn-outline" type="button"
+              onClick={() => {
+                setEditingId(null);
+                setForm(emptyForm);
+              }}
+            >
+              Cancel
+            </button>
+          )}
+        </form>
+
+        <h2 style={{ marginTop: "2rem" }}>Product List</h2>
 
         {loading ? (
           <p>Loading...</p>
         ) : (
-          <table
-            border="1"
-            cellPadding="8"
-            style={{ width: "100%", marginTop: "1rem" }}
-          >
+          <table border="1" cellPadding="8" style={{ width: "100%", marginTop: "1rem", borderRadius: "10px" }}>
             <thead>
               <tr>
                 <th>Name</th>
@@ -184,6 +179,7 @@ const AdminProducts = () => {
                 <th>Actions</th>
               </tr>
             </thead>
+
             <tbody>
               {products.map((p) => (
                 <tr key={p._id}>
@@ -191,32 +187,22 @@ const AdminProducts = () => {
                   <td>{p.brand}</td>
                   <td>₹{p.price}</td>
                   <td>{p.countInStock}</td>
-                  {/* ✅ FIXED: show a string, not the raw object */}
                   <td>{getCategoryLabel(p.category)}</td>
-                  <td>
-                    <img
-                      src={p.image || "https://via.placeholder.com/80"}
-                      alt={p.name}
-                      width="60"
-                    />
-                  </td>
+                  <td><img src={p.image} width={50} height={50} alt="" /></td>
                   <td>
                     <button onClick={() => startEdit(p)}>Edit</button>
-                    <button
-                      onClick={() => handleDelete(p._id)}
-                      style={{ marginLeft: "0.5rem" }}
-                    >
+                    <button style={{ marginLeft: "0.5rem", color: "red" }} onClick={() => handleDelete(p._id)}>
                       Delete
                     </button>
                   </td>
                 </tr>
               ))}
             </tbody>
+
           </table>
         )}
       </div>
-    </div>
-  );
-};
+    );
+  };
 
-export default AdminProducts;
+  export default AdminProducts;
