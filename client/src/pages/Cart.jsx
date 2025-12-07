@@ -11,20 +11,21 @@ const Cart = () => {
     navigate("/checkout");
   };
 
-  const qtyBtnStyle = {
-    background: "var(--primary-color)",
+  const btnStyle = (disabled) => ({
+    background: disabled ? "#3f3f46" : "var(--primary)",
     border: "none",
     borderRadius: "6px",
     width: "28px",
     height: "28px",
     color: "#fff",
-    cursor: "pointer",
+    cursor: disabled ? "not-allowed" : "pointer",
     fontSize: "18px",
     fontWeight: "bold",
-  };
+    opacity: disabled ? 0.6 : 1,
+  });
 
   return (
-    <main style={{ padding: "1rem" }}>
+    <main className="container page">
       <h1>Your Cart</h1>
 
       {cartItems.length === 0 ? (
@@ -34,102 +35,117 @@ const Cart = () => {
       ) : (
         <>
           <ul style={{ listStyle: "none", marginTop: "1rem", padding: 0 }}>
-            {cartItems.map((item) => (
-              <li
-                key={item.product._id}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  padding: "0.75rem 0",
-                  borderBottom: "1px solid #1f2937",
-                }}
-              >
-                {/* Product Info */}
-                <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                  <img
-                    src={item.product.image || "https://via.placeholder.com/60"}
-                    alt={item.product.name}
-                    style={{ width: "60px", borderRadius: "4px" }}
-                  />
+            {cartItems.map((item) => {
+              const stock = item.product.countInStock;
+              const disablePlus = item.qty >= stock;
+              const disableMinus = item.qty <= 1;
 
-                  <div>
-                    <p>{item.product.name}</p>
+              return (
+                <li
+                  key={item.product._id}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: "0.75rem 0",
+                    borderBottom: "1px solid #1f2937",
+                  }}
+                >
+                  {/* Product Info */}
+                  <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                    <img
+                      src={item.product.image}
+                      alt={item.product.name}
+                      style={{ width: "60px", borderRadius: "6px" }}
+                    />
 
-                    {/* Qty Controls */}
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "10px",
-                        marginTop: "6px",
-                      }}
-                    >
-                      <button
-                        onClick={() =>
-                          updateQty(item.product._id, item.qty - 1)
-                        }
-                        style={qtyBtnStyle}
+                    <div>
+                      <p style={{ fontSize: "1rem", fontWeight: 500 }}>{item.product.name}</p>
+                      <p style={{ fontSize: "0.8rem", color: "#9ca3af" }}>
+                        In Stock: {stock}
+                      </p>
+
+                      {/* Qty Control */}
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "10px",
+                          marginTop: "6px",
+                        }}
                       >
-                        -
-                      </button>
+                        <button
+                          onClick={() =>
+                            !disableMinus && updateQty(item.product._id, item.qty - 1)
+                          }
+                          disabled={disableMinus}
+                          style={btnStyle(disableMinus)}
+                        >
+                          -
+                        </button>
 
-                      <span style={{ fontSize: "16px", width: "24px", textAlign: "center" }}>
-                        {item.qty}
-                      </span>
+                        <span style={{ fontSize: "16px", width: "24px", textAlign: "center" }}>
+                          {item.qty}
+                        </span>
 
-                      <button
-                        onClick={() =>
-                          updateQty(item.product._id, item.qty + 1)
-                        }
-                        style={qtyBtnStyle}
-                      >
-                        +
-                      </button>
+                        <button
+                          onClick={() => {
+                            if (disablePlus) {
+                              alert(`Only ${stock} left in stock`);
+                              return;
+                            }
+                            updateQty(item.product._id, item.qty + 1);
+                          }}
+                          disabled={disablePlus}
+                          style={btnStyle(disablePlus)}
+                        >
+                          +
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Price Section */}
-                <div style={{ textAlign: "right" }}>
-                  <p style={{ fontSize: "1rem", fontWeight: 600 }}>
-                    ₹{item.product.price * item.qty}
-                  </p>
+                  {/* Price & Actions */}
+                  <div style={{ textAlign: "right" }}>
+                    <p style={{ fontSize: "1rem", fontWeight: 600 }}>
+                      ₹{item.product.price * item.qty}
+                    </p>
 
-                  <button
-                    style={{
-                      marginTop: "0.5rem",
-                      padding: "0.25rem 0.75rem",
-                      borderRadius: "4px",
-                      border: "1px solid #ef4444",
-                      background: "transparent",
-                      color: "#ef4444",
-                      cursor: "pointer",
-                    }}
-                    onClick={() => removeFromCart(item.product._id)}
-                  >
-                    Remove
-                  </button>
-                </div>
-              </li>
-            ))}
+                    <button
+                      onClick={() => removeFromCart(item.product._id)}
+                      style={{
+                        marginTop: "0.5rem",
+                        padding: "0.25rem 0.75rem",
+                        borderRadius: "6px",
+                        border: "1px solid #ef4444",
+                        background: "transparent",
+                        color: "#ef4444",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
 
           {/* Total Price + Checkout */}
           <div style={{ marginTop: "1.5rem", textAlign: "right" }}>
             <h2 style={{ fontWeight: "bold" }}>Total: ₹{totalPrice}</h2>
             <button
+              onClick={goToCheckout}
               style={{
                 marginTop: "0.75rem",
                 padding: "0.5rem 1.5rem",
                 borderRadius: "6px",
-                border: "2px solid",
-                cursor: "pointer",
-                background: "var(--primary-color)",
+                background: "var(--primary)",
                 color: "#fff",
-                fontWeight: "600",
+                border: "none",
+                cursor: "pointer",
+                fontWeight: 600,
               }}
-              onClick={goToCheckout}
             >
               Proceed to Checkout
             </button>
