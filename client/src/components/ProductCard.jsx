@@ -4,20 +4,27 @@ import { useCartContext } from "../context/CartContext";
 import { useWishlistContext } from "../context/WishlistContext";
 
 const ProductCard = ({ product }) => {
-  const { addToCart } = useCartContext();
+  const { cartItems, addToCart, updateQty } = useCartContext();
   const { isInWishlist, toggleWishlist } = useWishlistContext();
-
-  const handleAdd = () => {
-    addToCart(product);
-  };
 
   const inWishlist = isInWishlist(product._id);
 
-  // category can be a string ("Electronics") or an object ({ id, name, slug })
-  const categoryName =
-    typeof product.category === "string"
-      ? product.category
-      : product.category?.name;
+  // Check if item is already in cart
+  const itemInCart = cartItems.find(
+    (item) => (item.product._id || item.product.id) === product._id
+  );
+
+  const qtyBtnStyle = {
+    background: "var(--primary-color)",
+    border: "none",
+    borderRadius: "6px",
+    width: "28px",
+    height: "28px",
+    color: "#fff",
+    cursor: "pointer",
+    fontSize: "18px",
+    fontWeight: "bold",
+  };
 
   return (
     <div
@@ -54,12 +61,14 @@ const ProductCard = ({ product }) => {
         >
           {product.name}
         </Link>
+
         <p style={{ fontSize: "0.9rem", opacity: 0.8 }}>
           {product.brand}
-          {categoryName && <> · {categoryName}</>}
+          {product.category?.name ? ` · ${product.category.name}` : ""}
         </p>
       </div>
 
+      {/* Price + Wishlist + Cart Controls */}
       <div
         style={{
           display: "flex",
@@ -70,6 +79,7 @@ const ProductCard = ({ product }) => {
       >
         <span style={{ fontWeight: "bold" }}>₹{product.price}</span>
 
+        {/* Wishlist Button */}
         <button
           onClick={() => toggleWishlist(product)}
           style={{
@@ -84,19 +94,53 @@ const ProductCard = ({ product }) => {
           {inWishlist ? "❤️" : "🤍"}
         </button>
 
-        <button
-          onClick={handleAdd}
-          disabled={!product.countInStock}
-          style={{
-            padding: "0.25rem 0.75rem",
-            borderRadius: "4px",
-            border: "none",
-            cursor: product.countInStock ? "pointer" : "not-allowed",
-            opacity: product.countInStock ? 1 : 0.5,
-          }}
-        >
-          {product.countInStock ? "Add to Cart" : "Out of Stock"}
-        </button>
+        {/* Cart Quantity Controls */}
+        {itemInCart ? (
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <button
+              onClick={() =>
+                updateQty(product._id, itemInCart.qty - 1)
+              }
+              style={qtyBtnStyle}
+            >
+              -
+            </button>
+
+            <span
+              style={{
+                fontSize: "16px",
+                width: "22px",
+                textAlign: "center",
+              }}
+            >
+              {itemInCart.qty}
+            </span>
+
+            <button
+              onClick={() =>
+                updateQty(product._id, itemInCart.qty + 1)
+              }
+              style={qtyBtnStyle}
+              disabled={itemInCart.qty >= product.countInStock}
+            >
+              +
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => addToCart(product)}
+            disabled={!product.countInStock}
+            style={{
+              padding: "0.25rem 0.75rem",
+              borderRadius: "4px",
+              border: "none",
+              cursor: product.countInStock ? "pointer" : "not-allowed",
+              opacity: product.countInStock ? 1 : 0.5,
+            }}
+          >
+            {product.countInStock ? "Add to Cart" : "Out of Stock"}
+          </button>
+        )}
       </div>
     </div>
   );

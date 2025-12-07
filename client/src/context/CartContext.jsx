@@ -31,23 +31,24 @@ export const CartProvider = ({ children }) => {
   }, [user]);
 
   useEffect(() => {
-    if (!hasLoadedFromStorage.current) return; 
+    if (!hasLoadedFromStorage.current) return;
 
     const key = getCartKey(user);
     localStorage.setItem(key, JSON.stringify(cartItems));
   }, [cartItems, user]);
 
+  const getId = (p) => p._id || p.id;
+
+  // Add to cart
   const addToCart = (product, qty = 1) => {
-    const productId = product._id || product.id;
+    const id = getId(product);
 
     setCartItems((prev) => {
-      const existing = prev.find(
-        (item) =>
-          (item.product._id || item.product.id) === productId
-      );
+      const existing = prev.find((item) => getId(item.product) === id);
+
       if (existing) {
         return prev.map((item) =>
-          (item.product._id || item.product.id) === productId
+          getId(item.product) === id
             ? { ...item, qty: item.qty + qty }
             : item
         );
@@ -56,18 +57,25 @@ export const CartProvider = ({ children }) => {
     });
   };
 
-  const removeFromCart = (id) => {
+  // Update quantity
+  const updateQty = (productId, qty) => {
     setCartItems((prev) =>
-      prev.filter(
-        (item) =>
-          (item.product._id || item.product.id) !== id
-      )
+      qty <= 0
+        ? prev.filter((item) => getId(item.product) !== productId)
+        : prev.map((item) =>
+            getId(item.product) === productId ? { ...item, qty } : item
+          )
     );
   };
 
-  const clearCart = () => {
-    setCartItems([]);
+  // Remove directly
+  const removeFromCart = (id) => {
+    setCartItems((prev) =>
+      prev.filter((item) => getId(item.product) !== id)
+    );
   };
+
+  const clearCart = () => setCartItems([]);
 
   const totalPrice = useMemo(
     () =>
@@ -84,6 +92,7 @@ export const CartProvider = ({ children }) => {
         cartItems,
         addToCart,
         removeFromCart,
+        updateQty,
         clearCart,
         totalPrice,
       }}
