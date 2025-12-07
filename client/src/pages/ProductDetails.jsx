@@ -12,41 +12,46 @@ const ProductDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const [qty, setQty] = useState(1); // ⭐ NEW
+
   useEffect(() => {
     const loadProduct = async () => {
       try {
         setLoading(true);
-        setError("");
         const { data } = await fetchProduct(id);
         setProduct(data);
-      } catch (err) {
-        console.error("fetchProduct error:", err);
+      } catch {
         setError("Failed to load product");
       } finally {
         setLoading(false);
       }
     };
-
     loadProduct();
   }, [id]);
 
-  if (loading)
-    return <p style={{ padding: "1rem" }}>Loading product...</p>;
-  if (error)
-    return (
-      <p style={{ padding: "1rem", color: "tomato" }}>
-        {error}
-      </p>
-    );
-  if (!product)
-    return <p style={{ padding: "1rem" }}>Product not found.</p>;
+  if (loading) return <p style={{ padding: "1rem" }}>Loading...</p>;
+  if (error) return <p style={{ padding: "1rem", color: "tomato" }}>{error}</p>;
+  if (!product) return <p style={{ padding: "1rem" }}>Product not found</p>;
 
-  const inStock = (product.countInStock ?? 0) > 0;
+  const inStock = product.countInStock > 0;
+  const maxStock = product.countInStock;
 
   const categoryName =
     typeof product.category === "string"
       ? product.category
       : product.category?.name;
+
+  const increaseQty = () => {
+    if (qty < maxStock) setQty(qty + 1);
+  };
+
+  const decreaseQty = () => {
+    if (qty > 1) setQty(qty - 1);
+  };
+
+  const handleAddToCart = () => {
+    addToCart(product, qty);
+  };
 
   return (
     <div className="container page" style={{ paddingTop: 12 }}>
@@ -57,67 +62,32 @@ const ProductDetails = () => {
             gridTemplateColumns: "minmax(0, 360px) 1fr",
             gap: "1.5rem",
             alignItems: "start",
-            rowGap: "1rem",
           }}
         >
-          {/* media */}
           <div className="product-media" style={{ alignSelf: "start" }}>
             <div className="product-image-wrapper" style={{ padding: 12 }}>
               <img
-                src={product.image || "https://via.placeholder.com/600x400"}
+                src={product.image}
                 alt={product.name}
-                className="product-image"
                 style={{ height: 320, objectFit: "contain" }}
               />
             </div>
           </div>
 
-          {/* details */}
           <div className="product-body">
-            <h1 className="product-title" style={{ marginBottom: 8 }}>
-              {product.name}
-            </h1>
+            <h1>{product.name}</h1>
 
-            <div
-              style={{
-                display: "flex",
-                gap: 12,
-                alignItems: "center",
-                marginBottom: 8,
-              }}
-            >
-              {product.brand && (
-                <span className="product-brand">{product.brand}</span>
-              )}
-              {categoryName && (
-                <span className="product-category-pill">
-                  {categoryName}
-                </span>
-              )}
-            </div>
+            <p style={{ opacity: 0.8 }}>
+              {product.brand} {categoryName && <>· {categoryName}</>}
+            </p>
 
-            <div
-              style={{
-                display: "flex",
-                alignItems: "baseline",
-                gap: 12,
-                marginBottom: 8,
-              }}
-            >
-              <div
-                className="product-price"
-                style={{ fontSize: "1.4rem", fontWeight: 700 }}
-              >
-                ₹{product.price}
-              </div>
-              <div className="text-muted">
-                {inStock
-                  ? `(${product.countInStock} in stock)`
-                  : "Out of stock"}
-              </div>
-            </div>
+            <h2 style={{ color: "#6df06d" }}>
+              ₹{product.price}{" "}
+              <span style={{ fontSize: "0.9rem", opacity: 0.8 }}>
+                ({product.countInStock} in stock)
+              </span>
+            </h2>
 
-            {/* ⭐ Rating display - FIXED */}
             <div style={{ marginBottom: 8 }}>
               <strong>{Number(product.rating || 0).toFixed(1)}</strong> ⭐
               <span style={{ marginLeft: 6 }}>
@@ -125,50 +95,65 @@ const ProductDetails = () => {
               </span>
             </div>
 
-            <p
-              style={{
-                marginTop: 8,
-                marginBottom: 12,
-                color: "var(--text-soft)",
-              }}
-            >
-              {product.description}
-            </p>
+            <p style={{ marginBottom: 12 }}>{product.description}</p>
 
-            <div
-              style={{
-                display: "flex",
-                gap: 12,
-                alignItems: "center",
-                marginTop: 8,
-              }}
-            >
-              <button
-                onClick={() => addToCart(product)}
-                disabled={!inStock}
-                className="btn btn-add-cart"
+            {/* ⭐ Quantity Control + Add To Cart */}
+            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+              {/* Quantity Selector */}
+              <div
                 style={{
-                  padding: "0.6rem 1.1rem",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  background: "#151515",
+                  padding: "8px 16px",
+                  borderRadius: 25,
                 }}
               >
-                {inStock ? "Add to cart" : "Out of stock"}
+                <button
+                  onClick={decreaseQty}
+                  disabled={qty <= 1}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "white",
+                    cursor: qty > 1 ? "pointer" : "not-allowed",
+                  }}
+                >
+                  ➖
+                </button>
+                <strong>{qty}</strong>
+                <button
+                  onClick={increaseQty}
+                  disabled={qty >= maxStock}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "white",
+                    cursor:
+                      qty >= maxStock ? "not-allowed" : "pointer",
+                  }}
+                >
+                  ➕
+                </button>
+              </div>
+
+              {/* Add To Cart Button */}
+              <button
+                onClick={handleAddToCart}
+                disabled={!inStock}
+                className="btn btn-add-cart"
+              >
+                Add to cart
               </button>
 
-              <button
-                className="btn btn-outline"
-                style={{ padding: "0.55rem 0.95rem" }}
-              >
-                Buy now
-              </button>
+              <button className="btn btn-outline">Buy now</button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Reviews section */}
-      <div style={{ marginTop: "1.35rem" }}>
-        <Reviews productId={product._id} />
-      </div>
+      <Reviews productId={product._id} />
     </div>
   );
 };
