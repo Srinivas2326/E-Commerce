@@ -1,18 +1,20 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { fetchProduct } from "../services/api";
 import { useCartContext } from "../context/CartContext";
 import Reviews from "../components/Reviews";
 
 const ProductDetails = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { addToCart } = useCartContext();
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [qty, setQty] = useState(1); // ⭐ NEW
+  // ⭐ Initial qty = 0
+  const [qty, setQty] = useState(0);
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -20,17 +22,24 @@ const ProductDetails = () => {
         setLoading(true);
         const { data } = await fetchProduct(id);
         setProduct(data);
-      } catch {
+      } catch (err) {
+        console.error("fetchProduct error:", err);
         setError("Failed to load product");
       } finally {
         setLoading(false);
       }
     };
+
     loadProduct();
   }, [id]);
 
   if (loading) return <p style={{ padding: "1rem" }}>Loading...</p>;
-  if (error) return <p style={{ padding: "1rem", color: "tomato" }}>{error}</p>;
+  if (error)
+    return (
+      <p style={{ padding: "1rem", color: "red" }}>
+        {error}
+      </p>
+    );
   if (!product) return <p style={{ padding: "1rem" }}>Product not found</p>;
 
   const inStock = product.countInStock > 0;
@@ -46,11 +55,18 @@ const ProductDetails = () => {
   };
 
   const decreaseQty = () => {
-    if (qty > 1) setQty(qty - 1);
+    if (qty > 0) setQty(qty - 1);
   };
 
   const handleAddToCart = () => {
+    if (qty === 0) return;
     addToCart(product, qty);
+  };
+
+  const handleBuyNow = () => {
+    if (qty === 0) return;
+    addToCart(product, qty);
+    navigate("/checkout");
   };
 
   return (
@@ -64,30 +80,38 @@ const ProductDetails = () => {
             alignItems: "start",
           }}
         >
-          <div className="product-media" style={{ alignSelf: "start" }}>
-            <div className="product-image-wrapper" style={{ padding: 12 }}>
+          {/* Product image */}
+          <div className="product-media">
+            <div style={{ padding: 12 }}>
               <img
                 src={product.image}
                 alt={product.name}
-                style={{ height: 320, objectFit: "contain" }}
+                style={{
+                  height: 320,
+                  objectFit: "contain",
+                  width: "100%",
+                }}
               />
             </div>
           </div>
 
+          {/* Right side Product details */}
           <div className="product-body">
-            <h1>{product.name}</h1>
+            <h1 style={{ marginBottom: 8 }}>{product.name}</h1>
 
             <p style={{ opacity: 0.8 }}>
-              {product.brand} {categoryName && <>· {categoryName}</>}
+              {product.brand}
+              {categoryName && <> · {categoryName}</>}
             </p>
 
-            <h2 style={{ color: "#6df06d" }}>
+            <h2 style={{ color: "#2ce539" }}>
               ₹{product.price}{" "}
               <span style={{ fontSize: "0.9rem", opacity: 0.8 }}>
                 ({product.countInStock} in stock)
               </span>
             </h2>
 
+            {/* Rating */}
             <div style={{ marginBottom: 8 }}>
               <strong>{Number(product.rating || 0).toFixed(1)}</strong> ⭐
               <span style={{ marginLeft: 6 }}>
@@ -97,39 +121,43 @@ const ProductDetails = () => {
 
             <p style={{ marginBottom: 12 }}>{product.description}</p>
 
-            {/* ⭐ Quantity Control + Add To Cart */}
+            {/* ⭐ Quantity + Add/Buy Now */}
             <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-              {/* Quantity Selector */}
+              {/* Qty Selector */}
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 12,
-                  background: "#151515",
-                  padding: "8px 16px",
+                  gap: 16,
+                  background: "#131313",
+                  padding: "6px 18px",
                   borderRadius: 25,
                 }}
               >
                 <button
                   onClick={decreaseQty}
-                  disabled={qty <= 1}
+                  disabled={qty <= 0}
                   style={{
                     background: "none",
                     border: "none",
-                    color: "white",
-                    cursor: qty > 1 ? "pointer" : "not-allowed",
+                    fontSize: "1.2rem",
+                    color: qty > 0 ? "white" : "#555",
+                    cursor: qty > 0 ? "pointer" : "not-allowed",
                   }}
                 >
                   ➖
                 </button>
+
                 <strong>{qty}</strong>
+
                 <button
                   onClick={increaseQty}
                   disabled={qty >= maxStock}
                   style={{
                     background: "none",
                     border: "none",
-                    color: "white",
+                    fontSize: "1.2rem",
+                    color: qty >= maxStock ? "#555" : "white",
                     cursor:
                       qty >= maxStock ? "not-allowed" : "pointer",
                   }}
@@ -138,21 +166,30 @@ const ProductDetails = () => {
                 </button>
               </div>
 
-              {/* Add To Cart Button */}
+              {/* Add to Cart */}
               <button
-                onClick={handleAddToCart}
-                disabled={!inStock}
                 className="btn btn-add-cart"
+                disabled={!inStock || qty === 0}
+                onClick={handleAddToCart}
               >
                 Add to cart
               </button>
 
-              <button className="btn btn-outline">Buy now</button>
+              {/* Buy Now */}
+              <button
+                className="btn btn-outline"
+                style={{ padding: "0.55rem 0.95rem" }}
+                disabled={!inStock || qty === 0}
+                onClick={handleBuyNow}
+              >
+                Buy now
+              </button>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Reviews Section */}
       <Reviews productId={product._id} />
     </div>
   );
